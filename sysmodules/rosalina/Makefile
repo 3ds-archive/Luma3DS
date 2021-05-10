@@ -25,7 +25,7 @@ INCLUDES	:=	include include/gdb include/menus include/redshift
 # options for code generation
 #---------------------------------------------------------------------------------
 ARCH	:=	-march=armv6k -mtune=mpcore -mfloat-abi=hard -mtp=soft
-DEFINES :=	-DARM11 -D_3DS -DONLY_CN_FONTLIB="$(ONLY_CN_FONTLIB)"
+DEFINES :=	-DARM11 -D_3DS
 
 CFLAGS	:=	-g -std=gnu11 -Wall -Wextra -Werror -Wno-unused-value -Os -mword-relocations \
 			-fomit-frame-pointer -ffunction-sections -fdata-sections -fno-math-errno \

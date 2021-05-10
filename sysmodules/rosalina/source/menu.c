@@ -328,9 +328,9 @@ static void menuDraw(Menu *menu, s32 selected,s32 page)
         Draw_DrawString(SCREEN_BOT_WIDTH - 16 - 4 * (SPACING_X/2), SCREEN_BOT_HEIGHT - 32, COLOR_WHITE, "    ");
 
     if(isRelease)
-        Draw_DrawFormattedString(16, SCREEN_BOT_HEIGHT - 32, COLOR_TITLE, "Luma3DS %s 中文版", versionString);
+        Draw_DrawFormattedString(16, SCREEN_BOT_HEIGHT - 32, COLOR_TITLE, "Luma3DS %s 日本語", versionString);
     else
-        Draw_DrawFormattedString(16, SCREEN_BOT_HEIGHT - 32, COLOR_TITLE, "Luma3DS %s 中文版-%08lx", versionString, commitHash);
+        Draw_DrawFormattedString(16, SCREEN_BOT_HEIGHT - 32, COLOR_TITLE, "Luma3DS %s 日本語-%08lx", versionString, commitHash);
 
     Draw_FlushFramebuffer();
 }

@@ -43,14 +43,8 @@ static u32 gpuSavedFramebufferAddr1, gpuSavedFramebufferAddr2, gpuSavedFramebuff
 static u32 framebufferCacheSize;
 static void *framebufferCache;
 static RecursiveLock lock;
-
-#if ONLY_CN_FONTLIB != 0
-static u8 fontbin[0x599C0];
-char *fontlibpath = "/unifont_cn.bin";
-#else
 static u8 fontbin[0x1EFAC0];
 char *fontlibpath = "/unifont_full.bin";
-#endif
 
 void ReadFont2Mem(){
     IFile file;

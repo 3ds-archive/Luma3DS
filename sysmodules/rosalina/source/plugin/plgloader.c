@@ -63,8 +63,8 @@ void        PluginLoader__UpdateMenu(void)
 {
     static const char *status[2] =
     {
-        "插件加载: [禁用]",
-        "插件加载: [启用]"
+        "3gxローダー: [無効]",
+        "3gxローダー: [有効]"
     };
 
     rosalinaMenu.items[4].title = status[PluginLoaderCtx.isEnabled];

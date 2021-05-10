@@ -92,8 +92,8 @@ void initSystem(void)
     menuCombo = out == 0 ? DEFAULT_MENU_COMBO : (u32)out;
 
     miscellaneousMenu.items[0].title = Luma_SharedConfig->hbldr_3dsx_tid == HBLDR_DEFAULT_3DSX_TID ?
-        "将当前应用替换为homebrew" :
-        "将hblauncher_loader应用替换为homebrew";
+        "現在のタイトルをHBLに変更" :
+        "元のタイトルに変更";
 
     for(res = 0xD88007FA; res == (Result)0xD88007FA; svcSleepThread(500 * 1000LL))
     {

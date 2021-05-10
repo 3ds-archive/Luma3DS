@@ -7,8 +7,6 @@ REVISION	:=	$(shell git describe --tags --match v[0-9]* --abbrev=8 | sed 's/-[0-
 FTP_HOST 	:=	"192.168.1.42"
 FTP_PORT	:=	"5000"
 
-export ONLY_CN_FONTLIB	:=	1
-
 SUBFOLDERS	:=	sysmodules arm11 arm9 k11_extension
 
 .PHONY:	all release clean $(SUBFOLDERS)
@@ -29,7 +27,7 @@ boot.firm:	$(SUBFOLDERS)
 	@firmtool build $@ -D sysmodules/sysmodules.bin arm11/arm11.elf arm9/arm9.elf k11_extension/k11_extension.elf \
 	-A 0x18180000 -C XDMA XDMA NDMA XDMA
 	@echo built... $(notdir $@)
-	@make send
+#	@make send
 
 boot.3dsx:
 	@curl -sSL "https://github.com/fincs/new-hbmenu/releases/latest/download/boot.3dsx" -o "$@"

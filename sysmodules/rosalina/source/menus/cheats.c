@@ -1937,14 +1937,14 @@ void RosalinaMenu_Cheats(void)
         do
         {
             Draw_Lock();
-            Draw_DrawString(16, 16, COLOR_TITLE, "金手指");
+            Draw_DrawString(16, 16, COLOR_TITLE, "チート");
             if (titleId == 0)
             {
-                Draw_DrawString(16, 48, COLOR_WHITE, "没有发现可用的标题。");
+                Draw_DrawString(16, 48, COLOR_WHITE, "タイトルが見つかりませんでした。");
             }
             else
             {
-                Draw_DrawFormattedString(16, 48, COLOR_WHITE, "标题 %016llX 没有找到金手指。", titleId);
+                Draw_DrawFormattedString(16, 48, COLOR_WHITE, "%016llX のチートが見つかりま\nせんでした。", titleId);
             }
 
             Draw_FlushFramebuffer();
@@ -1965,13 +1965,13 @@ void RosalinaMenu_Cheats(void)
             }
             if (R_SUCCEEDED(r))
             {
-                Draw_DrawFormattedString(16, 16, COLOR_TITLE, "金手指列表");
+                Draw_DrawFormattedString(16, 16, COLOR_TITLE, "チートリスト");
 
                 for (s32 i = 0; i < CHEATS_PER_MENU_PAGE && page * CHEATS_PER_MENU_PAGE + i < cheatCount; i++)
                 {
                     char buf[65] = { 0 };
                     s32 j = page * CHEATS_PER_MENU_PAGE + i;
-                    const char * checkbox = (cheats[j]->active ? "[开]" : "[关]");
+                    const char * checkbox = (cheats[j]->active ? "(x) " : "( ) ");
                     sprintf(buf, "%s%s", checkbox, cheats[j]->name);
                     if(cheats[j]->hasKeyCode){
                         Draw_DrawString(32, 48 + i * (SPACING_Y+4), COLOR_WHITE, buf);
@@ -1980,12 +1980,12 @@ void RosalinaMenu_Cheats(void)
                         Draw_DrawString(32, 48 + i * (SPACING_Y+4), cheats[j]->valid ? COLOR_WHITE : COLOR_RED, buf);
                     };
                     Draw_DrawCharacter(16, 48 + i * (SPACING_Y+4), COLOR_TITLE, j == selected ? '>' : ' ');
-                    Draw_DrawString(40, 48 + i * (SPACING_Y+4), cheats[j]->active ? COLOR_GREEN : COLOR_RED, cheats[j]->active ? "开" : "关");
+                    Draw_DrawString(40, 48 + i * (SPACING_Y+4), cheats[j]->active ? COLOR_GREEN : COLOR_RED, cheats[j]->active ? "x" : " ");
                 }
             }
             else
             {
-                Draw_DrawFormattedString(16, 16, COLOR_TITLE, "错误：%08lx", r);
+                Draw_DrawFormattedString(16, 16, COLOR_TITLE, "エラー：%08lx", r);
                 Draw_DrawFormattedString(16, 16, COLOR_RED, failureReason);
             }
             Draw_FlushFramebuffer();
