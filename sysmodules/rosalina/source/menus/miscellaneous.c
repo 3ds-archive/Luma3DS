@@ -41,7 +41,7 @@
 Menu miscellaneousMenu = {
     "その他の設定",
     {
-        { "現在のタイトルをHBLに変更", METHOD, .method = &MiscellaneousMenu_SwitchBoot3dsxTargetTitle },
+        { "次回起動時にHBLを起動", METHOD, .method = &MiscellaneousMenu_SwitchBoot3dsxTargetTitle },
         { "メニューのキーコンボを変更", METHOD, .method = &MiscellaneousMenu_ChangeMenuCombo },
         { "入力リダイレクトを開始", METHOD, .method = &MiscellaneousMenu_InputRedirection },
         { "NTPに現在時刻を同期", METHOD, .method = &MiscellaneousMenu_SyncTimeDate },
@@ -64,7 +64,7 @@ void MiscellaneousMenu_SwitchBoot3dsxTargetTitle(void)
         if(R_SUCCEEDED(res))
         {
             Luma_SharedConfig->hbldr_3dsx_tid = progInfo.programId;
-            miscellaneousMenu.items[0].title = "元のタイトルに変更";
+            miscellaneousMenu.items[0].title = "HBL起動設定を解除";
         }
         else
         {
@@ -76,7 +76,7 @@ void MiscellaneousMenu_SwitchBoot3dsxTargetTitle(void)
     {
         res = 0;
         Luma_SharedConfig->hbldr_3dsx_tid = HBLDR_DEFAULT_3DSX_TID;
-        miscellaneousMenu.items[0].title = "現在のタイトルをHBLに変更";
+        miscellaneousMenu.items[0].title = "次回起動時にHBLを起動";
     }
 
     Draw_Lock();
