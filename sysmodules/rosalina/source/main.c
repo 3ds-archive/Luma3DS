@@ -92,8 +92,8 @@ void initSystem(void)
     menuCombo = out == 0 ? DEFAULT_MENU_COMBO : (u32)out;
 
     miscellaneousMenu.items[0].title = Luma_SharedConfig->hbldr_3dsx_tid == HBLDR_DEFAULT_3DSX_TID ?
-        "現在のタイトルをHBLに変更" :
-        "元のタイトルに変更";
+        "次回起動時にHBLを起動" :
+        "HBL起動設定を解除";
 
     for(res = 0xD88007FA; res == (Result)0xD88007FA; svcSleepThread(500 * 1000LL))
     {
