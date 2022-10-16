@@ -95,8 +95,8 @@ void initSystem(void)
     lastNtpTzOffset = (s16)out;
 
     miscellaneousMenu.items[0].title = Luma_SharedConfig->hbldr_3dsx_tid == HBLDR_DEFAULT_3DSX_TID ?
-        "将当前应用替换为homebrew" :
-        "将hblauncher_loader应用替换为homebrew";
+        "次回起動時にHBLを起動" :
+        "HBL起動設定を解除";
 
     for(res = 0xD88007FA; res == (Result)0xD88007FA; svcSleepThread(500 * 1000LL))
     {

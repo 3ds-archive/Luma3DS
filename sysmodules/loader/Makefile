@@ -28,9 +28,10 @@ INCLUDES	:=	include
 ARCH	:=	-march=armv6k -mtune=mpcore -mfloat-abi=hard -mtp=soft
 DEFINES :=	-D__3DS__
 
+FALSEPOSITIVES := -Wno-array-bounds -Wno-stringop-overflow -Wno-stringop-overread
 COMMON_FLAGS = -g -Wall -Wextra -Werror -O2 -mword-relocations \
 			-fomit-frame-pointer -ffunction-sections -fdata-sections \
-			$(ARCH) $(DEFINES) $(INCLUDE)
+			$(FALSEPOSITIVES) $(ARCH) $(DEFINES) $(INCLUDE)
 
 CFLAGS	:=	-std=gnu11 $(COMMON_FLAGS)
 

@@ -37,11 +37,11 @@
 #include "pmdbgext.h"
 
 Menu debuggerMenu = {
-    "调试器选项",
+    "デバッガオプション",
     {
-        { "启用调试器",                       METHOD, .method = &DebuggerMenu_EnableDebugger  },
-        { "禁用调试器",                       METHOD, .method = &DebuggerMenu_DisableDebugger },
-        { "强制调试下个启动的应用",            METHOD, .method = &DebuggerMenu_DebugNextApplicationByForce },
+        { "デバッガを有効化",                       METHOD, .method = &DebuggerMenu_EnableDebugger  },
+        { "デバッガを無効化",                       METHOD, .method = &DebuggerMenu_DisableDebugger },
+        { "次回アプリ開始時にデバッグ",            METHOD, .method = &DebuggerMenu_DebugNextApplicationByForce },
         {},
     }
 };
@@ -125,15 +125,15 @@ void DebuggerMenu_EnableDebugger(void)
     do
     {
         Draw_Lock();
-        Draw_DrawString(10, 10, COLOR_TITLE, "调试器选项");
+        Draw_DrawString(10, 10, COLOR_TITLE, "デバッガオプション");
 
         if(alreadyEnabled)
-            Draw_DrawString(10, 30, COLOR_WHITE, "调试器已经启动！");
+            Draw_DrawString(10, 30, COLOR_WHITE, "既に有効化されています。");
         else if(!isSocURegistered)
-            Draw_DrawString(10, 30, COLOR_WHITE, "系统还未加载完成，不能启动调试器！");
+            Draw_DrawString(10, 30, COLOR_WHITE, "システムが完全にロードされていません。");
         else
         {
-            Draw_DrawString(10, 30, COLOR_WHITE, "开启调试器...");
+            Draw_DrawString(10, 30, COLOR_WHITE, "デバッガ開始中...");
 
             if(!done)
             {
@@ -149,11 +149,11 @@ void DebuggerMenu_EnableDebugger(void)
                 }
 
                 if(res != 0)
-                    sprintf(buf, "开启调试器... 失败 (0x%08lx).", (u32)res);
+                    sprintf(buf, "デバッガ開始中... 失敗 (0x%08lx)", (u32)res);
                 done = true;
             }
             if(res == 0)
-                Draw_DrawString(10, 30, COLOR_WHITE, "开启调试器... 成功。");
+                Draw_DrawString(10, 30, COLOR_WHITE, "デバッガ開始中... 成功");
             else
                 Draw_DrawString(10, 30, COLOR_WHITE, buf);
         }
@@ -172,13 +172,13 @@ void DebuggerMenu_DisableDebugger(void)
     char buf[65];
 
     if(res != 0)
-        sprintf(buf, "禁用调试器失败 (0x%08lx).", (u32)res);
+        sprintf(buf, "デバッガの無効化失敗 (0x%08lx).", (u32)res);
 
     do
     {
         Draw_Lock();
-        Draw_DrawString(10, 10, COLOR_TITLE, "调试器选项");
-        Draw_DrawString(10, 30, COLOR_WHITE, initialized ? (res == 0 ? "调试器禁用成功。" : buf) : "调试器未开启。");
+        Draw_DrawString(10, 10, COLOR_TITLE, "デバッガオプション");
+        Draw_DrawString(10, 30, COLOR_WHITE, initialized ? (res == 0 ? "デバッガの無効化成功" : buf) : "デバッガは有効化されていません。");
         Draw_FlushFramebuffer();
         Draw_Unlock();
     }
@@ -196,7 +196,7 @@ void DebuggerMenu_DebugNextApplicationByForce(void)
         GDB_LockAllContexts(&gdbServer);
 
         if (nextApplicationGdbCtx != NULL)
-            strcpy(buf, "调试已经执行。");
+            strcpy(buf, "既に機能しています。");
         else
         {
             nextApplicationGdbCtx = GDB_SelectAvailableContext(&gdbServer, GDB_PORT_BASE + 3, GDB_PORT_BASE + 4);
@@ -206,27 +206,27 @@ void DebuggerMenu_DebugNextApplicationByForce(void)
                 nextApplicationGdbCtx->pid = 0xFFFFFFFF;
                 res = PMDBG_DebugNextApplicationByForce(true);
                 if(R_SUCCEEDED(res))
-                    sprintf(buf, "执行成功！\n使用端口%d去连接到下一个启动的应用。", nextApplicationGdbCtx->localPort);
+                    sprintf(buf, "実行成功。\n%dポートに接続してください。", nextApplicationGdbCtx->localPort);
                 else
                 {
                     nextApplicationGdbCtx->flags = 0;
                     nextApplicationGdbCtx->localPort = 0;
                     nextApplicationGdbCtx = NULL;
-                        sprintf(buf, "执行失败 (0x%08lx).", (u32)res);
+                        sprintf(buf, "実行失敗 (0x%08lx)", (u32)res);
                 }
             }
             else
-                strcpy(buf, "分配端口失败。\n请先在进程列表取消一个再试。");
+                strcpy(buf, "スロットの割り当てに失敗しました。\nプロセスリスト内の選択中のプロセスを解除してください。");
         }
         GDB_UnlockAllContexts(&gdbServer);
     }
     else
-        strcpy(buf, "调试器未开启。");
+        strcpy(buf, "デバッガは有効化されていません。");
 
     do
     {
         Draw_Lock();
-        Draw_DrawString(10, 10, COLOR_TITLE, "调试器选项");
+        Draw_DrawString(10, 10, COLOR_TITLE, "デバッガオプション");
         Draw_DrawString(10, 30, COLOR_WHITE, buf);
         Draw_FlushFramebuffer();
         Draw_Unlock();

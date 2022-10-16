@@ -401,7 +401,7 @@ static void ProcessListMenu_MemoryViewer(const ProcessInfo *info)
             void drawMenu(void)
             {
                 Draw_Lock();
-                Draw_DrawString(10, 10, COLOR_TITLE, "内存查看器");
+                Draw_DrawString(10, 10, COLOR_TITLE, "メモリエディタ");
 
                 // Instructions
                 const u32 instructionsY = 30;
@@ -701,7 +701,7 @@ void RosalinaMenu_ProcessList(void)
         Draw_Lock();
         if(page != pagePrev)
             Draw_ClearFramebuffer();
-        Draw_DrawString(10, 10, COLOR_TITLE, "进程列表");
+        Draw_DrawString(10, 10, COLOR_TITLE, "プロセスリスト");
 
         if(gdbServer.super.running)
         {

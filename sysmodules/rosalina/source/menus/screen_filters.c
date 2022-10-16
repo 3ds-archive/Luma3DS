@@ -106,18 +106,18 @@ void ScreenFiltersMenu_SetCct(int cct)
 }
 
 Menu screenFiltersMenu = {
-    "屏幕色温调节",
+    "スクリーンフィルター",
     {
-        { "[6500K]  默认（日光灯）", METHOD, .method = &ScreenFiltersMenu_SetDefault },
-        { "[10000K] 冷光", METHOD, .method = &ScreenFiltersMenu_SetAquarium },
-        { "[7500K]  偏冷日光灯", METHOD, .method = &ScreenFiltersMenu_SetOvercastSky },
-        { "[5500K]  偏暖日光灯", METHOD, .method = &ScreenFiltersMenu_SetDaylight },
-        { "[4200K]  黄色日光灯", METHOD, .method = &ScreenFiltersMenu_SetFluorescent },
-        { "[3400K]  卤素灯", METHOD, .method = &ScreenFiltersMenu_SetHalogen },
-        { "[2700K]  白炽灯", METHOD, .method = &ScreenFiltersMenu_SetIncandescent },
-        { "[2300K]  偏暖白炽灯", METHOD, .method = &ScreenFiltersMenu_SetWarmIncandescent },
-        { "[1900K]  蜡烛光", METHOD, .method = &ScreenFiltersMenu_SetCandle },
-        { "[1200K]  火柴光", METHOD, .method = &ScreenFiltersMenu_SetEmber },
+        { "[6500K]  (デフォルト)", METHOD, .method = &ScreenFiltersMenu_SetDefault },
+        { "[10000K]", METHOD, .method = &ScreenFiltersMenu_SetAquarium },
+        { "[7500K]", METHOD, .method = &ScreenFiltersMenu_SetOvercastSky },
+        { "[5500K]", METHOD, .method = &ScreenFiltersMenu_SetDaylight },
+        { "[4200K]", METHOD, .method = &ScreenFiltersMenu_SetFluorescent },
+        { "[3400K]", METHOD, .method = &ScreenFiltersMenu_SetHalogen },
+        { "[2700K]", METHOD, .method = &ScreenFiltersMenu_SetIncandescent },
+        { "[2300K]", METHOD, .method = &ScreenFiltersMenu_SetWarmIncandescent },
+        { "[1900K]", METHOD, .method = &ScreenFiltersMenu_SetCandle },
+        { "[1200K]", METHOD, .method = &ScreenFiltersMenu_SetEmber },
         {},
     }
 };

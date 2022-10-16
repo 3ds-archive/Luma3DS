@@ -105,15 +105,15 @@ typedef struct CfgData {
 } CfgData;
 
 Menu miscellaneousMenu = {
-    "其他设置",
+    "その他の設定",
     {
-        { "将当前应用替换为homebrew", METHOD, .method = &MiscellaneousMenu_SwitchBoot3dsxTargetTitle },
-        { "更改菜单呼出热键", METHOD, .method = &MiscellaneousMenu_ChangeMenuCombo },
-        { "开始输入重定向", METHOD, .method = &MiscellaneousMenu_InputRedirection },
-        { "通过NTP服务同步时间和日期", METHOD, .method = &MiscellaneousMenu_UpdateTimeDateNtp },
-        { "取消用户时间偏移", METHOD, .method = &MiscellaneousMenu_NullifyUserTimeOffset },
-        { "转储DSP固件", METHOD, .method = &MiscellaneousMenu_DumpDspFirm },
-        { "保存设置", METHOD, .method = &MiscellaneousMenu_SaveSettings },
+        { "次回起動時にHBLを起動", METHOD, .method = &MiscellaneousMenu_SwitchBoot3dsxTargetTitle },
+        { "メニューのキーコンボを変更", METHOD, .method = &MiscellaneousMenu_ChangeMenuCombo },
+        { "入力リダイレクトを開始", METHOD, .method = &MiscellaneousMenu_InputRedirection },
+        { "NTPで現在時刻を同期", METHOD, .method = &MiscellaneousMenu_UpdateTimeDateNtp },
+        { "タイムオフセットの無効化", METHOD, .method = &MiscellaneousMenu_NullifyUserTimeOffset },
+        { "DSPファームウェアをダンプ", METHOD, .method = &MiscellaneousMenu_DumpDspFirm },
+        { "設定を保存", METHOD, .method = &MiscellaneousMenu_SaveSettings },
         {},
     }
 };
@@ -134,19 +134,19 @@ void MiscellaneousMenu_SwitchBoot3dsxTargetTitle(void)
         if(R_SUCCEEDED(res))
         {
             Luma_SharedConfig->hbldr_3dsx_tid = progInfo.programId;
-            miscellaneousMenu.items[0].title = "将hblauncher_loader应用替换为homebrew";
+            miscellaneousMenu.items[0].title = "HBL起動設定を解除";
         }
         else
         {
             res = -1;
-            strcpy(failureReason, "没有找到可用的线程。");
+            strcpy(failureReason, "プロセスが見つかりませんでした。");
         }
     }
     else
     {
         res = 0;
         Luma_SharedConfig->hbldr_3dsx_tid = HBLDR_DEFAULT_3DSX_TID;
-        miscellaneousMenu.items[0].title = "将当前应用替换为homebrew";
+        miscellaneousMenu.items[0].title = "次回起動時にHBLを起動";
     }
 
     Draw_Lock();
@@ -156,12 +156,12 @@ void MiscellaneousMenu_SwitchBoot3dsxTargetTitle(void)
     do
     {
         Draw_Lock();
-        Draw_DrawString(10, 10, COLOR_TITLE, "其他设置");
+        Draw_DrawString(10, 10, COLOR_TITLE, "その他の設定");
 
         if(R_SUCCEEDED(res))
-            Draw_DrawString(10, 30, COLOR_WHITE, "执行成功。");
+            Draw_DrawString(10, 30, COLOR_WHITE, "実行成功");
         else
-            Draw_DrawFormattedString(10, 30, COLOR_WHITE, "执行失败 (%s)。", failureReason);
+            Draw_DrawFormattedString(10, 30, COLOR_WHITE, "実行失敗\n(%s)", failureReason);
 
         Draw_FlushFramebuffer();
         Draw_Unlock();
@@ -211,12 +211,10 @@ void MiscellaneousMenu_ChangeMenuCombo(void)
     MiscellaneousMenu_ConvertComboToString(comboStrOrig, menuCombo);
 
     Draw_Lock();
-    Draw_DrawString(10, 10, COLOR_TITLE, "其他设置");
+    Draw_DrawString(10, 10, COLOR_TITLE, "その他の設定");
 
-    posY = Draw_DrawFormattedString(10, 30, COLOR_WHITE, "当前的菜单热键是：  %s", comboStrOrig);
-    posY = Draw_DrawString(10, posY + SPACING_Y + 4, COLOR_WHITE, "请键入新的按键：");
-
-    posY = Draw_DrawString(10, 130, COLOR_RED, "提示：同时长按后松开可设定组合键。");
+    posY = Draw_DrawFormattedString(10, 30, COLOR_WHITE, "現在のキーコンボ：  %s", comboStrOrig);
+    posY = Draw_DrawString(10, posY + SPACING_Y + 4, COLOR_WHITE, "新しいキーコンボ：");
 
     menuCombo = waitCombo();
     MiscellaneousMenu_ConvertComboToString(comboStr, menuCombo);
@@ -224,12 +222,12 @@ void MiscellaneousMenu_ChangeMenuCombo(void)
     do
     {
         Draw_Lock();
-        Draw_DrawString(10, 10, COLOR_TITLE, "其他设置");
+        Draw_DrawString(10, 10, COLOR_TITLE, "その他の設定");
 
-        posY = Draw_DrawFormattedString(10, 30, COLOR_WHITE, "当前的菜单热键是：  %s", comboStrOrig);
-        posY = Draw_DrawFormattedString(10, posY + SPACING_Y + 4, COLOR_WHITE, "请键入新的按键：%s", comboStr) + SPACING_Y;
+        posY = Draw_DrawFormattedString(10, 30, COLOR_WHITE, "現在のキーコンボ：  %s", comboStrOrig);
+        posY = Draw_DrawFormattedString(10, posY + SPACING_Y + 4, COLOR_WHITE, "新しいキーコンボ：%s", comboStr) + SPACING_Y;
 
-        posY = Draw_DrawString(10, posY + SPACING_Y, COLOR_WHITE, "菜单热键已设置成功！");
+        posY = Draw_DrawString(10, posY + SPACING_Y, COLOR_WHITE, "変更成功！");
 
         Draw_FlushFramebuffer();
         Draw_Unlock();
@@ -384,11 +382,11 @@ void MiscellaneousMenu_SaveSettings(void)
     do
     {
         Draw_Lock();
-        Draw_DrawString(10, 10, COLOR_TITLE, "其他设置");
+        Draw_DrawString(10, 10, COLOR_TITLE, "その他の設定");
         if(R_SUCCEEDED(res))
-            Draw_DrawString(10, 30, COLOR_WHITE, "执行成功。");
+            Draw_DrawString(10, 30, COLOR_WHITE, "実行成功");
         else
-            Draw_DrawFormattedString(10, 30, COLOR_WHITE, "执行失败 (0x%08lx)。", res);
+            Draw_DrawFormattedString(10, 30, COLOR_WHITE, "実行失敗 (0x%08lx)", res);
         Draw_FlushFramebuffer();
         Draw_Unlock();
     }
@@ -408,9 +406,9 @@ void MiscellaneousMenu_InputRedirection(void)
     {
         res = InputRedirection_Disable(5 * 1000 * 1000 * 1000LL);
         if(res != 0)
-            sprintf(buf, "停止输入重定向错误 (0x%08lx)。", (u32)res);
+            sprintf(buf, "入力リダイレクトの停止に失敗 (0x%08lx)。", (u32)res);
         else
-            miscellaneousMenu.items[2].title = "开始输入重定向";
+            miscellaneousMenu.items[2].title = "入力リダイレクトを開始";
     }
     else
     {
@@ -438,13 +436,13 @@ void MiscellaneousMenu_InputRedirection(void)
     do
     {
         Draw_Lock();
-        Draw_DrawString(10, 10, COLOR_TITLE, "其他设置");
+        Draw_DrawString(10, 10, COLOR_TITLE, "その他の設定");
 
         if(!wasEnabled && cantStart)
-            Draw_DrawString(10, 30, COLOR_WHITE, "不能开始输入重定向，请在系统加载完成后再试。");
+            Draw_DrawString(10, 30, COLOR_WHITE, "システム開始前の入力リダイレクトは不可");
         else if(!wasEnabled)
         {
-            Draw_DrawString(10, 30, COLOR_WHITE, "开始输入重定向...");
+            Draw_DrawString(10, 30, COLOR_WHITE, "入力リダイレクト開始中...");
             if(!done)
             {
                 res = InputRedirection_DoOrUndoPatches();
@@ -469,15 +467,15 @@ void MiscellaneousMenu_InputRedirection(void)
                 }
 
                 if(res != 0)
-                    sprintf(buf, "开始输入重定向... 失败 (0x%08lx)。", (u32)res);
+                    sprintf(buf, "入力リダイレクト開始中... 失敗 (0x%08lx)", (u32)res);
                 else
-                    miscellaneousMenu.items[2].title = "停止输入重定向";
+                    miscellaneousMenu.items[2].title = "入力リダイレクトを停止";
 
                 done = true;
             }
 
             if(res == 0)
-                Draw_DrawString(10, 30, COLOR_WHITE, "开始输入重定向... 完成。");
+                Draw_DrawString(10, 30, COLOR_WHITE, "入力リダイレクトを開始中... 成功");
             else
                 Draw_DrawString(10, 30, COLOR_WHITE, buf);
         }
@@ -486,14 +484,14 @@ void MiscellaneousMenu_InputRedirection(void)
             if(res == 0)
             {
                 u32 posY = 30;
-                posY = Draw_DrawString(10, posY, COLOR_WHITE, "停止输入重定向成功。\n\n");
+                posY = Draw_DrawString(10, posY, COLOR_WHITE, "入力リダイレクト停止成功\n\n");
                 if (isN3DS)
                 {
                     posY = Draw_DrawString(
                         10,
                         posY,
                         COLOR_WHITE,
-                        "这可能会无缘无故在主菜单上发生重复按键，\n这时只需要按一下ZL/ZR就可以了。"
+                        "これによりホームメニューで誤ったキーの\n入力が発生する場合があります。現時点で\nはZL/ZRで回避可能です。"
                     );
                 }
             }
@@ -529,14 +527,14 @@ void MiscellaneousMenu_UpdateTimeDateNtp(void)
     do
     {
         Draw_Lock();
-        Draw_DrawString(10, 10, COLOR_TITLE, "其他设置");
+        Draw_DrawString(10, 10, COLOR_TITLE, "その他の設定");
 
         absOffset = utcOffset - 12;
         absOffset = absOffset < 0 ? -absOffset : absOffset;
-        posY = Draw_DrawFormattedString(10, 30, COLOR_WHITE, "当前UTC偏移： %c%02d%02d", utcOffset < 12 ? '-' : '+', absOffset, utcOffsetMinute);
-        posY = Draw_DrawFormattedString(10, posY + SPACING_Y + 4, COLOR_WHITE, "使用方向键 左/右 更改小时。");
-        posY = Draw_DrawFormattedString(10, posY + SPACING_Y + 4, COLOR_WHITE, "使用方向键 上/下 更改分钟。");
-        posY = Draw_DrawFormattedString(10, posY + SPACING_Y + 4, COLOR_WHITE, "然后按A完成。") + SPACING_Y;
+        posY = Draw_DrawFormattedString(10, 30, COLOR_WHITE, "現在のUTCオフセット： %c%02d%02d", utcOffset < 12 ? '-' : '+', absOffset, utcOffsetMinute);
+        posY = Draw_DrawFormattedString(10, posY + SPACING_Y + 4, COLOR_WHITE, "十字キーの左/右で時単位変更");
+        posY = Draw_DrawFormattedString(10, posY + SPACING_Y + 4, COLOR_WHITE, "十字キーの上/下で分単位変更");
+        posY = Draw_DrawFormattedString(10, posY + SPACING_Y + 4, COLOR_WHITE, "A:決定") + SPACING_Y;
 
         input = waitInput();
 
@@ -571,17 +569,17 @@ void MiscellaneousMenu_UpdateTimeDateNtp(void)
     do
     {
         Draw_Lock();
-        Draw_DrawString(10, 10, COLOR_TITLE, "其他设置");
+        Draw_DrawString(10, 10, COLOR_TITLE, "その他の設定");
 
         absOffset = utcOffset;
         absOffset = absOffset < 0 ? -absOffset : absOffset;
-        Draw_DrawFormattedString(10, 30, COLOR_WHITE, "当前UTC偏移： %c%02d", utcOffset < 0 ? '-' : '+', absOffset);
+        Draw_DrawFormattedString(10, 30, COLOR_WHITE, "現在のUTCオフセット： %c%02d", utcOffset < 0 ? '-' : '+', absOffset);
         if (cantStart)
-            Draw_DrawFormattedString(10, posY + 2 * SPACING_Y, COLOR_WHITE, "在系统结束加载前不能同步时间/日期。") + SPACING_Y;
+            Draw_DrawFormattedString(10, posY + 2 * SPACING_Y, COLOR_WHITE, "システムが完全にロードされていません。") + SPACING_Y;
         else if (R_FAILED(res))
-            Draw_DrawFormattedString(10, posY + 2 * SPACING_Y, COLOR_WHITE, "执行失败 (%08lx)。", (u32)res) + SPACING_Y;
+            Draw_DrawFormattedString(10, posY + 2 * SPACING_Y, COLOR_WHITE, "実行失敗 (%08lx)", (u32)res) + SPACING_Y;
         else
-            Draw_DrawFormattedString(10, posY + 2 * SPACING_Y, COLOR_WHITE, "时间日期更新成功。") + SPACING_Y;
+            Draw_DrawFormattedString(10, posY + 2 * SPACING_Y, COLOR_WHITE, "更新成功。変更を適用するには再起動。") + SPACING_Y;
 
         input = waitInput();
 
