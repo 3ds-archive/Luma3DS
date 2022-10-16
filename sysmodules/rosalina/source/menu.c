@@ -382,7 +382,7 @@ static void menuDraw(Menu *menu, s32 selected,s32 page)
 //            voltageInt, voltageFrac,
 //            percentageInt, percentageFrac
 //        );
-        Draw_DrawFormattedString(16, SCREEN_BOT_HEIGHT - 16, COLOR_WHITE, "温度：%02hhu°C  电压：%lu.%02luV  电量：%lu.%lu%%",batteryTemperature, // CP437
+        Draw_DrawFormattedString(16, SCREEN_BOT_HEIGHT - 16, COLOR_WHITE, "温度：%02hhu°C  電圧：%lu.%02luV  残量：%lu.%lu%%",batteryTemperature, // CP437
                         voltageInt, voltageFrac,
                         percentageInt, percentageFrac);
     }

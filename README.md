@@ -7,7 +7,7 @@
 
 ### インストール方法
 
-`boot.firm`と`unifont_full.bin`をSDカードのルートディレクトリに配置します。
+`boot.firm`をSDカードのルートに、`unifont_full.bin`をSDカードのlumaフォルダに配置します。
 
 ### 注意事項
 

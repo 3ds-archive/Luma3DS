@@ -352,11 +352,11 @@ void SysConfigMenu_ToggleCardIfPower(void)
         if (R_FAILED(res)) cardIfStatus = false;
 
         Draw_Lock();
-        Draw_DrawString(10, 10, COLOR_TITLE, "游戏卡槽开关");
-        u32 posY = Draw_DrawString(10, 30, COLOR_WHITE, "按A切换,按B返回。\n\n");
-        posY = Draw_DrawString(10, posY, COLOR_WHITE, "插入或移除游戏卡将重置状态，如果你想运\n行该游戏，则需要重新插入。\n\n");
-        Draw_DrawString(10, posY, COLOR_WHITE, "当前状态：");
-        Draw_DrawString(90, posY, !cardIfStatus ? COLOR_RED : COLOR_GREEN, !cardIfStatus ? "禁用" : "启用 ");
+        Draw_DrawString(10, 10, COLOR_TITLE, "ゲームカードスロットの電源");
+        u32 posY = Draw_DrawString(10, 30, COLOR_WHITE, "Aで切り替え、Bで戻る\n\n");
+        posY = Draw_DrawString(10, posY, COLOR_WHITE, "カードの挿入または取り出しを行うと\n状態がリセットされます。\n再度プレイする場合は再挿入してください。\n\n");
+        Draw_DrawString(10, posY, COLOR_WHITE, "現在の状態：");
+        Draw_DrawString(90, posY, !cardIfStatus ? COLOR_RED : COLOR_GREEN, !cardIfStatus ? "無効" : "有効 ");
 
         Draw_FlushFramebuffer();
         Draw_Unlock();
