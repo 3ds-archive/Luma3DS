@@ -1,6 +1,6 @@
 /*
 *   This file is part of Luma3DS
-*   Copyright (C) 2016-2020 Aurora Wright, TuxSH
+*   Copyright (C) 2016-2021 Aurora Wright, TuxSH
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -30,9 +30,12 @@
 #include "menu.h"
 
 extern Menu miscellaneousMenu;
+extern int lastNtpTzOffset;
 
 void MiscellaneousMenu_SwitchBoot3dsxTargetTitle(void);
 void MiscellaneousMenu_ChangeMenuCombo(void);
 void MiscellaneousMenu_SaveSettings(void);
 void MiscellaneousMenu_InputRedirection(void);
-void MiscellaneousMenu_SyncTimeDate(void);
+void MiscellaneousMenu_UpdateTimeDateNtp(void);
+void MiscellaneousMenu_NullifyUserTimeOffset(void);
+void MiscellaneousMenu_DumpDspFirm(void);

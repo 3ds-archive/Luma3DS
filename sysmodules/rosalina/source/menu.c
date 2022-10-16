@@ -1,6 +1,6 @@
 /*
 *   This file is part of Luma3DS
-*   Copyright (C) 2016-2020 Aurora Wright, TuxSH
+*   Copyright (C) 2016-2022 Aurora Wright, TuxSH
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -36,8 +36,11 @@
 #include "menus/cheats.h"
 #include "minisoc.h"
 #include "plugin.h"
+#include "menus/screen_filters.h"
 
+u32 menuCombo = 0;
 bool isHidInitialized = false;
+u32 mcuFwVersion = 0;
 
 // libctru redefinition:
 
@@ -142,9 +145,55 @@ u32 waitCombo(void)
 }
 
 static MyThread menuThread;
-static u8 ALIGN(8) menuThreadStack[0x1000];
-static u8 batteryLevel = 255;
-static u32 homeBtnPressed = 0;
+static u8 ALIGN(8) menuThreadStack[0x3000];
+
+static float batteryPercentage;
+static float batteryVoltage;
+static u8 batteryTemperature;
+
+static Result menuUpdateMcuInfo(void)
+{
+    Result res = 0;
+    u8 data[4];
+
+    if (!isServiceUsable("mcu::HWC"))
+        return -1;
+
+    res = mcuHwcInit();
+    if (R_FAILED(res))
+        return res;
+
+    // Read single-byte mcu regs 0x0A to 0x0D directly
+    res = MCUHWC_ReadRegister(0xA, data, 4);
+
+    if (R_SUCCEEDED(res))
+    {
+        batteryTemperature = data[0];
+
+        // The battery percentage isn't very precise... its precision ranges from 0.09% to 0.14% approx
+        // Round to 0.1%
+        batteryPercentage = data[1] + data[2] / 256.0f;
+        batteryPercentage = (u32)((batteryPercentage + 0.05f) * 10.0f) / 10.0f;
+
+        // Round battery voltage to 0.01V
+        batteryVoltage = 0.02f * data[3];
+        batteryVoltage = (u32)((batteryVoltage + 0.005f) * 100.0f) / 100.0f;
+    }
+
+    // Read mcu fw version if not already done
+    if (mcuFwVersion == 0)
+    {
+        u8 minor = 0, major = 0;
+        MCUHWC_GetFwVerHigh(&major);
+        MCUHWC_GetFwVerLow(&minor);
+
+        // If it has failed, mcuFwVersion will be set to 0 again
+        mcuFwVersion = SYSTEM_VERSION(major - 0x10, minor, 0);
+    }
+
+    mcuHwcExit();
+    return res;
+}
 
 static inline u32 menuAdvanceCursor(u32 pos, u32 numItems, s32 displ)
 {
@@ -181,23 +230,31 @@ u32 menuCountItemsWithoutHidden(const Menu *menu)
 
 MyThread *menuCreateThread(void)
 {
-    if(R_FAILED(MyThread_Create(&menuThread, menuThreadMain, menuThreadStack, 0x1000, 52, CORE_SYSTEM)))
+    if(R_FAILED(MyThread_Create(&menuThread, menuThreadMain, menuThreadStack, 0x3000, 52, CORE_SYSTEM)))
         svcBreak(USERBREAK_PANIC);
     return &menuThread;
 }
 
 u32 menuCombo;
-u32 blockMenuOpen = 0;
+u32 g_blockMenuOpen = 0;
 
-u32     DispWarningOnHome(void);
-
-void    menuThreadMain(void)
+void menuThreadMain(void)
 {
     if(isN3DS)
         N3DSMenu_UpdateStatus();
 
     while (!isServiceUsable("ac:u") || !isServiceUsable("hid:USER"))
         svcSleepThread(500 * 1000 * 1000LL);
+
+    s64 out;
+    svcGetSystemInfo(&out, 0x10000, 0x102);
+    screenFiltersCurrentTemperature = (int)(u32)out;
+    if (screenFiltersCurrentTemperature < 1000 || screenFiltersCurrentTemperature > 25100)
+        screenFiltersCurrentTemperature = 6500;
+
+    // Careful about race conditions here
+    if (screenFiltersCurrentTemperature != 6500)
+        ScreenFiltersMenu_SetCct(screenFiltersCurrentTemperature);
 
     hidInit(); // assume this doesn't fail
     isHidInitialized = true;
@@ -210,7 +267,7 @@ void    menuThreadMain(void)
 
         Cheat_ApplyCheats();
 
-        if((scanHeldKeys() & menuCombo) == menuCombo)
+        if(((scanHeldKeys() & menuCombo) == menuCombo) && !g_blockMenuOpen)
         {
             menuEnter();
             if(isN3DS) N3DSMenu_UpdateStatus();
@@ -219,13 +276,9 @@ void    menuThreadMain(void)
             menuLeave();
         }
 
-        // Check for home button on O3DS Mode3 with plugin loaded
-        if (homeBtnPressed != 0)
-        {
-            if (DispWarningOnHome())
-                svcKernelSetState(7); ///< reboot is fine since exiting a mode3 game reboot anyway
-
-            homeBtnPressed = 0;
+        if (saveSettingsRequest) {
+            SaveSettings();
+            saveSettingsRequest = false;
         }
     }
 }
@@ -272,17 +325,11 @@ static void menuDraw(Menu *menu, s32 selected,s32 page)
     s64 out;
     u32 version, commitHash;
     bool isRelease;
-    bool isMcuHwcRegistered;
+
+    Result mcuInfoRes = menuUpdateMcuInfo();
+
     if (menuItemIsHidden(&menu->items[selected]))
         selected += 1;
-    if(R_SUCCEEDED(srvIsServiceRegistered(&isMcuHwcRegistered, "mcu::HWC")) && isMcuHwcRegistered && R_SUCCEEDED(mcuHwcInit()))
-    {
-        if(R_FAILED(MCUHWC_GetBatteryLevel(&batteryLevel)))
-            batteryLevel = 255;
-        mcuHwcExit();
-    }
-    else
-        batteryLevel = 255;
 
     svcGetSystemInfo(&out, 0x10000, 0);
     version = (u32)out;
@@ -319,13 +366,28 @@ static void menuDraw(Menu *menu, s32 selected,s32 page)
         int n = sprintf(ipBuffer, "%hhu.%hhu.%hhu.%hhu", addr[0], addr[1], addr[2], addr[3]);
         Draw_DrawString(SCREEN_BOT_WIDTH - 16 - (SPACING_X/2) * n, 16, COLOR_WHITE, ipBuffer);
     }
-
-    Draw_DrawFormattedString(SCREEN_BOT_WIDTH - 16 - 4 * (SPACING_X/2), SCREEN_BOT_HEIGHT - 48, COLOR_WHITE, "    ");
-
-    if(batteryLevel != 255)
-        Draw_DrawFormattedString(SCREEN_BOT_WIDTH - 16 - 4 * (SPACING_X/2), SCREEN_BOT_HEIGHT - 32, COLOR_WHITE, "%02hhu%%", batteryLevel);
     else
-        Draw_DrawString(SCREEN_BOT_WIDTH - 16 - 4 * (SPACING_X/2), SCREEN_BOT_HEIGHT - 32, COLOR_WHITE, "    ");
+        Draw_DrawFormattedString(SCREEN_BOT_WIDTH - 16 - (SPACING_X/2) * 15, 16, COLOR_WHITE, "%15s", "");
+
+    if(R_SUCCEEDED(mcuInfoRes))
+    {
+        u32 voltageInt = (u32)batteryVoltage;
+        u32 voltageFrac = (u32)(batteryVoltage * 100.0f) % 100u;
+        u32 percentageInt = (u32)batteryPercentage;
+        u32 percentageFrac = (u32)(batteryPercentage * 10.0f) % 10u;
+
+//        char buf[32];
+//        sprintf(
+//            buf, "温度：%02hhu℃  电压：%lu.%02luV  剩余电量：%lu.%lu%%", batteryTemperature, // CP437
+//            voltageInt, voltageFrac,
+//            percentageInt, percentageFrac
+//        );
+        Draw_DrawFormattedString(16, SCREEN_BOT_HEIGHT - 16, COLOR_WHITE, "温度：%02hhu°C  电压：%lu.%02luV  电量：%lu.%lu%%",batteryTemperature, // CP437
+                        voltageInt, voltageFrac,
+                        percentageInt, percentageFrac);
+    }
+    else
+        Draw_DrawFormattedString(SCREEN_BOT_WIDTH - 10 - SPACING_X * 19, SCREEN_BOT_HEIGHT - 20, COLOR_WHITE, "%19s", "");
 
     if(isRelease)
         Draw_DrawFormattedString(16, SCREEN_BOT_HEIGHT - 32, COLOR_TITLE, "Luma3DS %s 日本語", versionString);
@@ -398,6 +460,8 @@ void menuShow(Menu *root)
         }
         else if(pressed & KEY_B)
         {
+            while (nbPreviousMenus == 0 && (scanHeldKeys() & KEY_B)); // wait a bit before exiting rosalina
+
             Draw_Lock();
             Draw_ClearFramebuffer();
             Draw_FlushFramebuffer();

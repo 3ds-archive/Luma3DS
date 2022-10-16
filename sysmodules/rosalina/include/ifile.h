@@ -1,6 +1,6 @@
 /*
 *   This file is part of Luma3DS
-*   Copyright (C) 2016-2020 Aurora Wright, TuxSH
+*   Copyright (C) 2016-2022 Aurora Wright, TuxSH
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@
 
 #pragma once
 
-#include <3ds/types.h>
+#include <3ds/services/fs.h>
 
 #define PATH_MAX 255
 
@@ -41,5 +41,6 @@ Result IFile_Open(IFile *file, FS_ArchiveID archiveId, FS_Path archivePath, FS_P
 Result IFile_OpenFromArchive(IFile *file, FS_Archive archive, FS_Path filePath, u32 flags);
 Result IFile_Close(IFile *file);
 Result IFile_GetSize(IFile *file, u64 *size);
+Result IFile_SetSize(IFile *file, u64 size);
 Result IFile_Read(IFile *file, u64 *total, void *buffer, u32 len);
-Result IFile_Write(IFile *file, u64 *total, void *buffer, u32 len, u32 flags);
+Result IFile_Write(IFile *file, u64 *total, const void *buffer, u32 len, u32 flags);

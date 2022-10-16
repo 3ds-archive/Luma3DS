@@ -30,7 +30,7 @@ boot.firm:	$(SUBFOLDERS)
 #	@make send
 
 boot.3dsx:
-	@curl -sSL "https://github.com/fincs/new-hbmenu/releases/latest/download/boot.3dsx" -o "$@"
+	@curl -sSfLO "https://github.com/fincs/new-hbmenu/releases/latest/download/$@"
 	@echo downloaded... $(notdir $@)
 
 send:

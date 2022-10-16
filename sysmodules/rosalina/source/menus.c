@@ -88,13 +88,58 @@ void RosalinaMenu_ShowDebugInfo(void)
     u32 kextPa = (u32)((u64)kextAddrSize >> 32);
     u32 kextSize = (u32)kextAddrSize;
 
+    u32 kernelVer = osGetKernelVersion();
+    FS_SdMmcSpeedInfo speedInfo;
+
+    Handle hm = 0;
+    OpenProcessByName("menu", &hm);
+    s64 out = 0;
+    svcGetHandleInfo(&out, hm, 0);
+    svcCloseHandle(hm);
+    u64 timeToBootHm = 1000u * out / SYSCLOCK_ARM11;
+
     do
     {
         Draw_Lock();
         Draw_DrawString(10, 10, COLOR_TITLE, "Rosalina -- デバッグ情報");
 
-        u32 posY = Draw_DrawString_Littlefont(10, 48, COLOR_WHITE, memoryMap);
-        Draw_DrawFormattedString_Littlefont(10, posY, COLOR_WHITE, "Kernel ext PA: %08lx - %08lx\n", kextPa, kextPa + kextSize);
+        u32 posY = Draw_DrawString_Littlefont(10, 30, COLOR_WHITE, memoryMap);
+        posY = Draw_DrawFormattedString_Littlefont(10, posY, COLOR_WHITE, "Kernel ext PA: %08lx - %08lx\n\n", kextPa, kextPa + kextSize);
+        posY = Draw_DrawFormattedString_Littlefont(
+            10, posY, COLOR_WHITE, "Kernel version: %lu.%lu-%lu\n",
+            GET_VERSION_MAJOR(kernelVer), GET_VERSION_MINOR(kernelVer), GET_VERSION_REVISION(kernelVer)
+        );
+        if (mcuFwVersion != 0)
+        {
+            posY = Draw_DrawFormattedString_Littlefont(
+                10, posY, COLOR_WHITE, "MCU FW version: %lu.%lu\n",
+                GET_VERSION_MAJOR(mcuFwVersion), GET_VERSION_MINOR(mcuFwVersion)
+            );
+        }
+
+        if (R_SUCCEEDED(FSUSER_GetSdmcSpeedInfo(&speedInfo)))
+        {
+            u32 clkDiv = 1 << (1 + (speedInfo.sdClkCtrl & 0xFF));
+            posY = Draw_DrawFormattedString_Littlefont(
+                10, posY, COLOR_WHITE, "SDMC speed: HS=%d %lukHz\n",
+                (int)speedInfo.highSpeedModeEnabled, SYSCLOCK_SDMMC / (1000 * clkDiv)
+            );
+        }
+        if (R_SUCCEEDED(FSUSER_GetNandSpeedInfo(&speedInfo)))
+        {
+            u32 clkDiv = 1 << (1 + (speedInfo.sdClkCtrl & 0xFF));
+            posY = Draw_DrawFormattedString_Littlefont(
+                10, posY, COLOR_WHITE, "NAND speed: HS=%d %lukHz\n",
+                (int)speedInfo.highSpeedModeEnabled, SYSCLOCK_SDMMC / (1000 * clkDiv)
+            );
+        }
+        if (timeToBootHm != 0)
+        {
+            posY = Draw_DrawFormattedString(
+                10, posY, COLOR_WHITE, "Time to boot to Home Menu: %llums\n",
+                timeToBootHm
+            );
+        }
         Draw_FlushFramebuffer();
         Draw_Unlock();
     }
@@ -113,7 +158,7 @@ void RosalinaMenu_ShowCredits(void)
         Draw_Lock();
         Draw_DrawString(16, 16, COLOR_TITLE, "Rosalina -- Luma3DSクレジット(敬称略)");
 
-        u32 posY = Draw_DrawString(16, 40, COLOR_WHITE, "Luma3DS (c) 2016-2021\nAuroraWright, TuxSH") + 8;
+        u32 posY = Draw_DrawString(16, 40, COLOR_WHITE, "Luma3DS (c) 2016-2022\nAuroraWright, TuxSH") + 8;
 
         posY = Draw_DrawString(16, posY + SPACING_Y + 4, COLOR_WHITE, "3DSXロード機能   —— fincs");
         posY = Draw_DrawString(16, posY + SPACING_Y + 4, COLOR_WHITE, "通信及びGDB機能  —— Stary");
@@ -144,7 +189,7 @@ void RosalinaMenu_AboutJpVer(void)
         Draw_Lock();
         Draw_DrawString(16, 16, COLOR_TITLE, "日本語版クレジット");
 
-        u32 posY = Draw_DrawString(16, 48, COLOR_WHITE, "  Luma3DS日本語版は、最新バージョンの\nv10.2.1に基づいています。\n（Nanquitas氏による3gxローダー付き）");
+        u32 posY = Draw_DrawString(16, 48, COLOR_WHITE, "  Luma3DS日本語版は、最新バージョンの\nv11.0に基づいています。\n（Nanquitas氏による3gxローダー付き）");
         posY = Draw_DrawString(16, posY + SPACING_Y + 4, COLOR_WHITE, "  このプロジェクトはCynricYu氏によって\n作成された中国語版プロジェクトからの派生です。提案を歓迎します。また商用利用は禁止されています。\n                            HIDE810");
         Draw_FlushFramebuffer();
         Draw_Unlock();
@@ -395,6 +440,8 @@ void RosalinaMenu_TakeScreenshot(void)
         FSUSER_CloseArchive(archive);
     }
 
+    // Conversion code adapted from https://stackoverflow.com/questions/21593692/convert-unix-timestamp-to-date-without-system-libs
+    // (original author @gnif under CC-BY-SA 4.0)
     u32 seconds, minutes, hours, days, year, month;
     u64 milliseconds = osGetTime();
     seconds = milliseconds/1000;

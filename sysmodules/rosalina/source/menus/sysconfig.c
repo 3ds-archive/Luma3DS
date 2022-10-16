@@ -1,6 +1,6 @@
 /*
 *   This file is part of Luma3DS
-*   Copyright (C) 2016-2020 Aurora Wright, TuxSH
+*   Copyright (C) 2016-2021 Aurora Wright, TuxSH
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -39,6 +39,7 @@ Menu sysconfigMenu = {
         { "LED切り替え", METHOD, .method = &SysConfigMenu_ToggleLEDs },
         { "Wi-Fi切り替え", METHOD, .method = &SysConfigMenu_ToggleWireless },
         { "電源ボタンの状態", METHOD, .method=&SysConfigMenu_TogglePowerButton },
+        { "ゲームカードスロットの電源", METHOD, .method=&SysConfigMenu_ToggleCardIfPower},
         {},
     }
 };
@@ -88,30 +89,7 @@ void SysConfigMenu_ToggleWireless(void)
     Draw_FlushFramebuffer();
     Draw_Unlock();
 
-    bool nwmRunning = false;
-
-    u32 pidList[0x40];
-    s32 processAmount;
-
-    svcGetProcessList(&processAmount, pidList, 0x40);
-
-    for(s32 i = 0; i < processAmount; i++)
-    {
-        Handle processHandle;
-        Result res = svcOpenProcess(&processHandle, pidList[i]);
-        if(R_FAILED(res))
-            continue;
-
-        char processName[8] = {0};
-        svcGetProcessInfo((s64 *)&processName, processHandle, 0x10000);
-        svcCloseHandle(processHandle);
-
-        if(!strncmp(processName, "nwm", 4))
-        {
-            nwmRunning = true;
-            break;
-        }
-    }
+    bool nwmRunning = isServiceUsable("nwm::EXT");
 
     do
     {
@@ -353,6 +331,49 @@ void SysConfigMenu_DisableForcedWifiConnection(void)
 
         u32 pressed = waitInputWithTimeout(1000);
         if(pressed & KEY_B)
+            return;
+    }
+    while(!menuShouldExit);
+}
+
+void SysConfigMenu_ToggleCardIfPower(void)
+{
+    Draw_Lock();
+    Draw_ClearFramebuffer();
+    Draw_FlushFramebuffer();
+    Draw_Unlock();
+
+    bool cardIfStatus = false;
+    bool updatedCardIfStatus = false;
+
+    do
+    {
+        Result res = FSUSER_CardSlotGetCardIFPowerStatus(&cardIfStatus);
+        if (R_FAILED(res)) cardIfStatus = false;
+
+        Draw_Lock();
+        Draw_DrawString(10, 10, COLOR_TITLE, "游戏卡槽开关");
+        u32 posY = Draw_DrawString(10, 30, COLOR_WHITE, "按A切换,按B返回。\n\n");
+        posY = Draw_DrawString(10, posY, COLOR_WHITE, "插入或移除游戏卡将重置状态，如果你想运\n行该游戏，则需要重新插入。\n\n");
+        Draw_DrawString(10, posY, COLOR_WHITE, "当前状态：");
+        Draw_DrawString(90, posY, !cardIfStatus ? COLOR_RED : COLOR_GREEN, !cardIfStatus ? "禁用" : "启用 ");
+
+        Draw_FlushFramebuffer();
+        Draw_Unlock();
+
+        u32 pressed = waitInputWithTimeout(1000);
+
+        if(pressed & KEY_A)
+        {
+            if (!cardIfStatus)
+                res = FSUSER_CardSlotPowerOn(&updatedCardIfStatus);
+            else
+                res = FSUSER_CardSlotPowerOff(&updatedCardIfStatus);
+
+            if (R_SUCCEEDED(res))
+                cardIfStatus = !updatedCardIfStatus;
+        }
+        else if(pressed & KEY_B)
             return;
     }
     while(!menuShouldExit);

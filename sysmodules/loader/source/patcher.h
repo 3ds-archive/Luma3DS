@@ -21,7 +21,6 @@ enum multiOptions
     DEFAULTEMU = 0,
     BRIGHTNESS,
     SPLASH,
-    SPLASH_DURATION,
     PIN,
     NEWCPU
 };
@@ -40,9 +39,8 @@ enum singleOptions
 };
 
 extern u32 config, multiConfig, bootConfig;
-extern bool isN3DS, isSdMode;
+extern bool isN3DS, isSdMode, nextGamePatchDisabled;
 
 void patchCode(u64 progId, u16 progVer, u8 *code, u32 size, u32 textSize, u32 roSize, u32 dataSize, u32 roAddress, u32 dataAddress);
-Result fileOpen(IFile *file, FS_ArchiveID archiveId, const char *path, int flags);
 bool loadTitleCodeSection(u64 progId, u8 *code, u32 size);
 bool loadTitleExheaderInfo(u64 progId, ExHeader_Info *exheaderInfo);

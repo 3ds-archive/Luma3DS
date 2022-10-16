@@ -26,7 +26,7 @@ INCLUDES	:=	include
 # options for code generation
 #---------------------------------------------------------------------------------
 ARCH	:=	-march=armv6k -mtune=mpcore -mfloat-abi=hard -mtp=soft
-DEFINES :=	-DARM11 -D_3DS
+DEFINES :=	-D__3DS__
 
 FALSEPOSITIVES := -Wno-array-bounds -Wno-stringop-overflow -Wno-stringop-overread
 COMMON_FLAGS = -g -Wall -Wextra -Werror -O2 -mword-relocations \

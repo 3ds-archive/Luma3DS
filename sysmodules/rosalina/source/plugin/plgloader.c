@@ -15,7 +15,7 @@
 
 static const char *g_title = "Plugin loader";
 PluginLoaderContext PluginLoaderCtx;
-extern u32 blockMenuOpen;
+extern u32 g_blockMenuOpen;
 
 void        IR__Patch(void);
 void        IR__Unpatch(void);
@@ -26,10 +26,10 @@ void        PluginLoader__Init(void)
 
     memset(ctx, 0, sizeof(PluginLoaderContext));
 
-    s64 rosalinaFlags = 0;
+    s64 pluginLoaderFlags = 0;
 
-    svcGetSystemInfo(&rosalinaFlags, 0x10000, 0x102);
-    ctx->isEnabled = rosalinaFlags & 1;
+    svcGetSystemInfo(&pluginLoaderFlags, 0x10000, 0x180);
+    ctx->isEnabled = pluginLoaderFlags & 1;
 
     ctx->plgEventPA = (s32 *)PA_FROM_VA_PTR(&ctx->plgEvent);
     ctx->plgReplyPA = (s32 *)PA_FROM_VA_PTR(&ctx->plgReply);
@@ -55,7 +55,7 @@ bool        PluginLoader__IsEnabled(void)
 void        PluginLoader__MenuCallback(void)
 {
     PluginLoaderCtx.isEnabled = !PluginLoaderCtx.isEnabled;
-    SaveSettings();
+    RequestSaveSettings();
     PluginLoader__UpdateMenu();
 }
 
@@ -163,7 +163,7 @@ void     PluginLoader__HandleCommands(void *_ctx)
             if (cmdbuf[1] != ctx->isEnabled)
             {
                 ctx->isEnabled = cmdbuf[1];
-                SaveSettings();
+                RequestSaveSettings();
                 PluginLoader__UpdateMenu();
             }
 
@@ -296,16 +296,18 @@ void     PluginLoader__HandleCommands(void *_ctx)
             break;
         }
 
-        case 11: // Get menu opening block pys address
+        case 11: // Set rosalina menu block
         {
-            if (cmdbuf[0] != IPC_MakeHeader(11, 0, 0))
+            if (cmdbuf[0] != IPC_MakeHeader(11, 1, 0))
             {
                 error(cmdbuf, 0xD9001830);
                 break;
             }
-            cmdbuf[0] = IPC_MakeHeader(11, 2, 0);
+            
+            g_blockMenuOpen = cmdbuf[1];
+            
+            cmdbuf[0] = IPC_MakeHeader(11, 1, 0);
             cmdbuf[1] = 0;
-            cmdbuf[2] = svcConvertVAToPA(&blockMenuOpen, false);
             break;
         }
 
@@ -323,11 +325,11 @@ void     PluginLoader__HandleCommands(void *_ctx)
                 break;
             }
 
-            u32* remoteEncPhysAddr = (u32*)(cmdbuf[1] | (1 << 31));
-            u32* remoteDecPhysAddr = (u32*)(cmdbuf[2] | (1 << 31));
+            u32* remoteSavePhysAddr = (u32*)(cmdbuf[1] | (1 << 31));
+            u32* remoteLoadPhysAddr = (u32*)(cmdbuf[2] | (1 << 31));
 
-            Result ret = MemoryBlock__SetSwapSettings(remoteEncPhysAddr, false, (u32*)cmdbuf[4]);
-            if (!ret) ret = MemoryBlock__SetSwapSettings(remoteDecPhysAddr, true, (u32*)cmdbuf[4]);
+            Result ret = MemoryBlock__SetSwapSettings(remoteSavePhysAddr, false, (u32*)cmdbuf[4]);
+            if (!ret) ret = MemoryBlock__SetSwapSettings(remoteLoadPhysAddr, true, (u32*)cmdbuf[4]);
 
             if (ret) {
                 cmdbuf[1] = MAKERESULT(RL_PERMANENT, RS_INVALIDARG, RM_LDR, RD_TOO_LARGE);
@@ -345,7 +347,7 @@ void     PluginLoader__HandleCommands(void *_ctx)
             break;
         }
 
-        case 13: // Set plugin exe dec
+        case 13: // Set plugin exe load func
         {
             if (cmdbuf[0] != IPC_MakeHeader(13, 1, 2))
             {
@@ -353,22 +355,22 @@ void     PluginLoader__HandleCommands(void *_ctx)
                 break;
             }
             cmdbuf[0] = IPC_MakeHeader(13, 1, 0);
-            Reset_3gx_DecParams();
+            Reset_3gx_LoadParams();
             if (!cmdbuf[1]) {
                 cmdbuf[1] = MAKERESULT(RL_PERMANENT, RS_INVALIDARG, RM_LDR, RD_INVALID_ADDRESS);
                 break;
             }
 
-            u32* remoteDecExeFuncAddr = (u32*)(cmdbuf[1] | (1 << 31));
-            Result ret = Set_3gx_DecParams(remoteDecExeFuncAddr, (u32*)cmdbuf[3]);
+            u32* remoteLoadExeFuncAddr = (u32*)(cmdbuf[1] | (1 << 31));
+            Result ret = Set_3gx_LoadParams(remoteLoadExeFuncAddr, (u32*)cmdbuf[3]);
             if (ret)
             {
                 cmdbuf[1] = MAKERESULT(RL_PERMANENT, RS_INVALIDARG, RM_LDR, RD_TOO_LARGE);
-                Reset_3gx_DecParams();
+                Reset_3gx_LoadParams();
                 break;
             }
             
-            ctx->isExeDecFunctionset = true;
+            ctx->isExeLoadFunctionset = true;
 
             svcInvalidateEntireInstructionCache(); // Could use the range one
 
@@ -389,57 +391,6 @@ void     PluginLoader__HandleCommands(void *_ctx)
         ctx->error.message = NULL;
         ctx->error.code = 0;
     }
-}
-
-void     PluginLoader__EnableNotificationLED(void)
-{
-    struct
-    {
-        u32     animation;
-        u8      r[32];
-        u8      g[32];
-        u8      b[32];
-    }       pattern;
-    u32 *   cmdbuf = getThreadCommandBuffer();
-    Handle  ptmsysmHandle;
-
-    if (R_FAILED(srvGetServiceHandle(&ptmsysmHandle, "ptm:sysm")))
-        return;
-
-    pattern.animation = 0x50;
-    for (u32 i = 0; i < 32; ++i)
-    {
-        pattern.r[i] = 0xFF;
-        pattern.g[i] = 0;
-        pattern.b[i] = 0xFF;
-    }
-    cmdbuf[0] = IPC_MakeHeader(0x801, 25, 0);
-    memcpy(&cmdbuf[1], &pattern, sizeof(pattern));
-
-    svcSendSyncRequest(ptmsysmHandle);
-    svcCloseHandle(ptmsysmHandle);
-}
-
-void     PluginLoader__DisableNotificationLED(void)
-{
-    struct
-    {
-        u32     animation;
-        u8      r[32];
-        u8      g[32];
-        u8      b[32];
-    }       pattern = {0};
-    u32 *   cmdbuf = getThreadCommandBuffer();
-    Handle  ptmsysmHandle;
-
-    if (R_FAILED(srvGetServiceHandle(&ptmsysmHandle, "ptm:sysm")))
-        return;
-
-    cmdbuf[0] = IPC_MakeHeader(0x801, 25, 0);
-    memcpy(&cmdbuf[1], &pattern, sizeof(pattern));
-
-    svcSendSyncRequest(ptmsysmHandle);
-    svcCloseHandle(ptmsysmHandle);
 }
 
 static bool     ThreadPredicate(u32 *kthread)
@@ -488,8 +439,9 @@ static void WaitForProcessTerminated(void *arg)
     SetConfigMemoryStatus(PLG_CFG_NONE);
     ctx->pluginIsSwapped = false;
     ctx->target = 0;
-    ctx->isExeDecFunctionset = false;
+    ctx->isExeLoadFunctionset = false;
     ctx->isSwapFunctionset = false;
+    g_blockMenuOpen = 0;
     MemoryBlock__ResetSwapSettings();
     //if (!ctx->userLoadParameters.noIRPatch)
     //    IR__Unpatch();
@@ -515,7 +467,6 @@ void    PluginLoader__HandleKernelEvent(u32 notifId)
     }
     else if (event == PLG_CFG_SWAP_EVENT)
     {
-        PluginLoader__EnableNotificationLED();
         if (ctx->pluginIsSwapped)
         {
             // Reload data from swap file
@@ -543,7 +494,6 @@ void    PluginLoader__HandleKernelEvent(u32 notifId)
             SetConfigMemoryStatus(PLG_CFG_SWAPPED);
         }
         ctx->pluginIsSwapped = !ctx->pluginIsSwapped;
-        PluginLoader__DisableNotificationLED();
     }
     srvPublishToSubscriber(0x1002, 0);
 }

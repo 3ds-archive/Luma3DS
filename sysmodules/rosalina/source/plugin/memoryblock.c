@@ -7,8 +7,20 @@
 
 #define MEMPERM_RW (MEMPERM_READ | MEMPERM_WRITE)
 
-u32  g_encDecSwapArgs[4];
+u32  g_loadSaveSwapArgs[4];
 char g_swapFileName[256];
+u32  g_memBlockSize = 5 * 1024 * 1024;
+
+Result     MemoryBlock__SetSize(u32 size) {
+    PluginLoaderContext *ctx = &PluginLoaderCtx;
+    MemoryBlock *memblock = &ctx->memblock;
+
+    if (memblock->isReady)
+        return MAKERESULT(RL_PERMANENT, RS_INVALIDSTATE, RM_LDR, RD_ALREADY_INITIALIZED);
+    
+    g_memBlockSize = size;
+    return 0;
+}
 
 Result      MemoryBlock__IsReady(void)
 {
@@ -30,16 +42,16 @@ Result      MemoryBlock__IsReady(void)
         u32     appMemAlloc = *appMemAllocPtr;
         u32     temp;
 
-        svcGetSystemInfo(&appRegionSize, 0x10000, 6);
+        svcGetSystemInfo(&appRegionSize, 0x10000, 0x80);
         svcGetSystemInfo(&appRegionUsed, 0, 1);
 
         appRegionFree = appRegionSize - appRegionUsed;
 
         // Check if appmemalloc reports the entire available memory
         if ((u32)appRegionSize == appMemAlloc)
-            *appMemAllocPtr -= MemBlockSize; ///< Remove plugin share from available memory
+            *appMemAllocPtr -= g_memBlockSize; ///< Remove plugin share from available memory
 
-        gameReserveSize = appRegionFree - MemBlockSize;
+        gameReserveSize = appRegionFree - g_memBlockSize;
 
         // First reserve the game memory size (to avoid heap relocation)
         res = svcControlMemoryUnsafe((u32 *)&temp, 0x30000000,
@@ -48,7 +60,7 @@ Result      MemoryBlock__IsReady(void)
         // Then allocate our plugin memory block
         if (R_SUCCEEDED(res))
             res = svcControlMemoryUnsafe((u32 *)&memblock->memblock, 0x07000000,
-                                        MemBlockSize, MEMOP_REGION_APP | MEMOP_ALLOC | MEMOP_LINEAR_FLAG, MEMPERM_RW);
+                                        g_memBlockSize, MEMOP_REGION_APP | MEMOP_ALLOC | MEMOP_LINEAR_FLAG, MEMPERM_RW);
 
         // Finally release game reserve block
         if (R_SUCCEEDED(res))
@@ -57,11 +69,10 @@ Result      MemoryBlock__IsReady(void)
     else
     {
         res = svcControlMemoryUnsafe((u32 *)&memblock->memblock, 0x07000000,
-                                    MemBlockSize, MEMOP_REGION_SYSTEM | MEMOP_ALLOC | MEMOP_LINEAR_FLAG, MEMPERM_RW);
+                                    g_memBlockSize, MEMOP_REGION_SYSTEM | MEMOP_ALLOC | MEMOP_LINEAR_FLAG, MEMPERM_RW);
     }
 
     if (R_FAILED(res)) {
-        PluginLoader__DisableNotificationLED();
         if (isN3DS)
             PluginLoader__Error("Cannot map plugin memory.", res);
         else
@@ -71,7 +82,7 @@ Result      MemoryBlock__IsReady(void)
     else
     {
         // Clear the memblock
-        memset(memblock->memblock, 0, MemBlockSize);
+        memset(memblock->memblock, 0, g_memBlockSize);
         memblock->isReady = true;
 
         /*if (isN3DS)
@@ -80,9 +91,9 @@ Result      MemoryBlock__IsReady(void)
             s64     appRegionSize = 0;
             vu32*   appMemAlloc = (vu32 *)PA_FROM_VA_PTR(0x1FF80040);
 
-            svcGetSystemInfo(&appRegionSize, 0x10000, 6);
+            svcGetSystemInfo(&appRegionSize, 0x10000, 0x80);
             if ((u32)appRegionSize == *appMemAlloc)
-                *appMemAlloc -= MemBlockSize; ///< Remove plugin share from available memory
+                *appMemAlloc -= g_memBlockSize; ///< Remove plugin share from available memory
         } */
     }
 
@@ -98,7 +109,7 @@ Result      MemoryBlock__Free(void)
 
     MemOp   memRegion = isN3DS ? MEMOP_REGION_APP : MEMOP_REGION_SYSTEM;
     Result  res = svcControlMemoryUnsafe((u32 *)&memblock->memblock, (u32)memblock->memblock,
-                                    MemBlockSize, memRegion | MEMOP_FREE, 0);
+                                    g_memBlockSize, memRegion | MEMOP_FREE, 0);
 
     memblock->isReady = false;
     memblock->memblock = NULL;
@@ -117,31 +128,28 @@ Result      MemoryBlock__ToSwapFile(void)
     PluginLoaderContext *ctx = &PluginLoaderCtx;
 
     u64     written = 0;
-    u64     toWrite = MemBlockSize;
+    u64     toWrite = g_memBlockSize;
     IFile   file;
     Result  res = 0;
 
-    svcFlushDataCacheRange(memblock->memblock, MemBlockSize);
+    svcFlushDataCacheRange(memblock->memblock, g_memBlockSize);
     res = IFile_Open(&file, ARCHIVE_SDMC, fsMakePath(PATH_EMPTY, ""),
                     fsMakePath(PATH_ASCII, g_swapFileName), FS_OPEN_RWC);
 
     if (R_FAILED(res)) {
-        PluginLoader__DisableNotificationLED();
         PluginLoader__Error("CRITICAL: Failed to open swap file.\n\nConsole will now reboot.", res);
         svcKernelSetState(7);
     }
     
     if (!ctx->isSwapFunctionset) {
-        PluginLoader__DisableNotificationLED();
-        PluginLoader__Error("CRITICAL: Swap encrypt function\nis not set.\n\nConsole will now reboot.", res);
+        PluginLoader__Error("CRITICAL: Swap save function\nis not set.\n\nConsole will now reboot.", res);
         svcKernelSetState(7);
     }
-    ctx->swapDecChecksum = encSwapFunc(memblock->memblock, memblock->memblock + MemBlockSize, g_encDecSwapArgs);
+    ctx->swapLoadChecksum = saveSwapFunc(memblock->memblock, memblock->memblock + g_memBlockSize, g_loadSaveSwapArgs);
     
     res = IFile_Write(&file, &written, memblock->memblock, toWrite, FS_WRITE_FLUSH);
 
     if (R_FAILED(res) || written != toWrite) {
-        PluginLoader__DisableNotificationLED();
         PluginLoader__Error("CRITICAL: Couldn't write swap to SD.\n\nConsole will now reboot.", res);
         svcKernelSetState(7);
     }
@@ -155,7 +163,7 @@ Result      MemoryBlock__FromSwapFile(void)
     MemoryBlock *memblock = &PluginLoaderCtx.memblock;
 
     u64     read = 0;
-    u64     toRead = MemBlockSize;
+    u64     toRead = g_memBlockSize;
     IFile   file;
     Result  res = 0;
 
@@ -163,7 +171,6 @@ Result      MemoryBlock__FromSwapFile(void)
                     fsMakePath(PATH_ASCII, g_swapFileName), FS_OPEN_READ);
 
     if (R_FAILED(res)) {
-        PluginLoader__DisableNotificationLED();
         PluginLoader__Error("CRITICAL: Failed to open swap file.\n\nConsole will now reboot.", res);
         svcKernelSetState(7);
     }
@@ -171,22 +178,20 @@ Result      MemoryBlock__FromSwapFile(void)
     res = IFile_Read(&file, &read, memblock->memblock, toRead);
 
     if (R_FAILED(res) || read != toRead) {
-        PluginLoader__DisableNotificationLED();
         PluginLoader__Error("CRITICAL: Couldn't read swap from SD.\n\nConsole will now reboot.", res);
         svcKernelSetState(7);
     }
     
-    u32 checksum = decSwapFunc(memblock->memblock, memblock->memblock + MemBlockSize, g_encDecSwapArgs);
+    u32 checksum = loadSwapFunc(memblock->memblock, memblock->memblock + g_memBlockSize, g_loadSaveSwapArgs);
     
     PluginLoaderContext *ctx = &PluginLoaderCtx;
-    if (checksum != ctx->swapDecChecksum) {
+    if (checksum != ctx->swapLoadChecksum) {
         res = -1;
-        PluginLoader__DisableNotificationLED();
         PluginLoader__Error("CRITICAL: Swap file is corrupted.\n\nConsole will now reboot.", res);
         svcKernelSetState(7); 
     }
     
-    svcFlushDataCacheRange(memblock->memblock, MemBlockSize);
+    svcFlushDataCacheRange(memblock->memblock, g_memBlockSize);
     IFile_Close(&file);
     return res;
 }
@@ -231,11 +236,11 @@ Result     MemoryBlock__UnmountFromProcess(void)
     return res;
 }
 
-Result    MemoryBlock__SetSwapSettings(u32* func, bool isDec, u32* params)
+Result    MemoryBlock__SetSwapSettings(u32* func, bool isLoad, u32* params)
 {
-    u32* physAddr = PA_FROM_VA_PTR(isDec ? (u32)decSwapFunc : (u32)encSwapFunc); //Bypass mem permissions
+    u32* physAddr = PA_FROM_VA_PTR(isLoad ? (u32)loadSwapFunc : (u32)saveSwapFunc); //Bypass mem permissions
 
-	memcpy(g_encDecSwapArgs, params, sizeof(g_encDecSwapArgs));
+	memcpy(g_loadSaveSwapArgs, params, sizeof(g_loadSaveSwapArgs));
     
     int i = 0;
     for (; i < 32 && func[i] != 0xE320F000; i++)
@@ -249,16 +254,16 @@ Result    MemoryBlock__SetSwapSettings(u32* func, bool isDec, u32* params)
 
 void       MemoryBlock__ResetSwapSettings(void)
 {
-	u32* encPhysAddr = PA_FROM_VA_PTR((u32)encSwapFunc); //Bypass mem permissions
-	u32* decPhysAddr = PA_FROM_VA_PTR((u32)decSwapFunc);
+	u32* savePhysAddr = PA_FROM_VA_PTR((u32)saveSwapFunc); //Bypass mem permissions
+	u32* loadPhysAddr = PA_FROM_VA_PTR((u32)loadSwapFunc);
     PluginLoaderContext *ctx = &PluginLoaderCtx;
 
-	memset(g_encDecSwapArgs, 0, sizeof(g_encDecSwapArgs));
+	memset(g_loadSaveSwapArgs, 0, sizeof(g_loadSaveSwapArgs));
 
-	encPhysAddr[0] = decPhysAddr[0] = 0xE12FFF1E; // BX LR
+	savePhysAddr[0] = loadPhysAddr[0] = 0xE12FFF1E; // BX LR
 
 	for (int i = 1; i < 32; i++) {
-		encPhysAddr[i] = decPhysAddr[i] = 0xE320F000; // NOP
+		savePhysAddr[i] = loadPhysAddr[i] = 0xE320F000; // NOP
 	}
 
 	strcpy(g_swapFileName, "/luma/plugins/.swap");

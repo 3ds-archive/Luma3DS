@@ -1,6 +1,6 @@
 /*
 *   This file is part of Luma3DS
-*   Copyright (C) 2016-2020 Aurora Wright, TuxSH
+*   Copyright (C) 2016-2021 Aurora Wright, TuxSH
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -57,7 +57,16 @@ Result IFile_GetSize(IFile *file, u64 *size)
   Result res;
 
   res = FSFILE_GetSize(file->handle, size);
-  file->size = *size;
+  if (R_SUCCEEDED(res)) file->size = *size;
+  return res;
+}
+
+Result IFile_SetSize(IFile *file, u64 size)
+{
+  Result res;
+
+  res = FSFILE_SetSize(file->handle, size);
+  if (R_SUCCEEDED(res)) file->size = size;
   return res;
 }
 
@@ -100,7 +109,7 @@ Result IFile_Read(IFile *file, u64 *total, void *buffer, u32 len)
   return res;
 }
 
-Result IFile_Write(IFile *file, u64 *total, void *buffer, u32 len, u32 flags)
+Result IFile_Write(IFile *file, u64 *total, const void *buffer, u32 len, u32 flags)
 {
   u32 written;
   u32 left;
